@@ -42,6 +42,7 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
+#include "NRF24L01+.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -81,7 +82,7 @@ int main(void)
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
+	
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
@@ -98,7 +99,11 @@ int main(void)
   MX_SPI1_Init();
   MX_UART4_Init();
   /* USER CODE BEGIN 2 */
-
+	nrf_pins nrf;          // nrf_pins=gpio_pins
+	nrf.CSN=CSN_Pin;
+	nrf.CE=CE_Pin;
+	nrf.IRQ=IRQ_Pin;
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */
