@@ -40,7 +40,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include "nrf.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -86,7 +86,7 @@ static void MX_GPIO_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	TM_NRF24L01_PowerUpRx();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
