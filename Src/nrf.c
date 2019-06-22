@@ -193,75 +193,17 @@ void TM_GPIO_INT_EnableClock(GPIO_TypeDef* GPIOx);
 void TM_GPIO_INT_Init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, TM_GPIO_Mode_t GPIO_Mode, TM_GPIO_OType_t GPIO_OType, TM_GPIO_PuPd_t GPIO_PuPd, TM_GPIO_Speed_t GPIO_Speed);
 // ------------------------------FUNCTIONS--------------------------------------------------------------
 
-//-------------------------------GPIO-------------------------------------------------------------------
-void TM_GPIO_Init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, TM_GPIO_Mode_t GPIO_Mode, TM_GPIO_OType_t GPIO_OType, TM_GPIO_PuPd_t GPIO_PuPd, TM_GPIO_Speed_t GPIO_Speed) {	
-	/* Check input */
-	if (GPIO_Pin == 0x00) {
-		return;
-	}
-	
-	/* Enable clock for GPIO */
-	TM_GPIO_INT_EnableClock(GPIOx);
-	
-	/* Do initialization */
-	TM_GPIO_INT_Init(GPIOx, GPIO_Pin, GPIO_Mode, GPIO_OType, GPIO_PuPd, GPIO_Speed);
-}
 
-void TM_GPIO_INT_Init(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin, TM_GPIO_Mode_t GPIO_Mode, TM_GPIO_OType_t GPIO_OType, TM_GPIO_PuPd_t GPIO_PuPd, TM_GPIO_Speed_t GPIO_Speed) {
-	uint8_t pinpos;
-	uint8_t ptr = TM_GPIO_GetPortSource(GPIOx);
-	
-#if defined(STM32F0xx)
-	/* STM32F0xx series does not have FAST speed mode available */
-	if (GPIO_Speed == TM_GPIO_Speed_Fast) {
-		/* Set speed to high mode */
-		GPIO_Speed = TM_GPIO_Speed_High;
-	}
-#endif
-	
-	/* Go through all pins */
-	for (pinpos = 0; pinpos < 0x10; pinpos++) {
-		/* Check if pin available */
-		if ((GPIO_Pin & (1 << pinpos)) == 0) {
-			continue;
-		}
-		
-		/* Pin is used */
-		GPIO_UsedPins[ptr] |= 1 << pinpos;
-		
-		/* Set GPIO PUPD register */
-		GPIOx->PUPDR = (GPIOx->PUPDR & ~(0x03 << (2 * pinpos))) | ((uint32_t)(GPIO_PuPd << (2 * pinpos)));
-		
-		/* Set GPIO MODE register */
-		GPIOx->MODER = (GPIOx->MODER & ~((uint32_t)(0x03 << (2 * pinpos)))) | ((uint32_t)(GPIO_Mode << (2 * pinpos)));
-		
-		/* Set only if output or alternate functions */
-		if (GPIO_Mode == TM_GPIO_Mode_OUT || GPIO_Mode == TM_GPIO_Mode_AF) {		
-			/* Set GPIO OTYPE register */
-			GPIOx->OTYPER = (GPIOx->OTYPER & ~(uint16_t)(0x01 << pinpos)) | ((uint16_t)(GPIO_OType << pinpos));
-			
-			/* Set GPIO OSPEED register */
-			GPIOx->OSPEEDR = (GPIOx->OSPEEDR & ~((uint32_t)(0x03 << (2 * pinpos)))) | ((uint32_t)(GPIO_Speed << (2 * pinpos)));
-		}
-	}
-}
-
-
-
-
-
-
-//---------------------------------------------------------------------------------------------------------
 /* NRF structure */
 static TM_NRF24L01_t TM_NRF24L01_Struct;
 
 void TM_NRF24L01_InitPins(void) {
 	/* Init pins */
 	/* CNS pin */
-	TM_GPIO_Init(NRF24L01_CSN_PORT, NRF24L01_CSN_PIN, TM_GPIO_Mode_OUT, TM_GPIO_OType_PP, TM_GPIO_PuPd_UP, TM_GPIO_Speed_Low);
+	//TM_GPIO_Init(NRF24L01_CSN_PORT, NRF24L01_CSN_PIN, TM_GPIO_Mode_OUT, TM_GPIO_OType_PP, TM_GPIO_PuPd_UP, TM_GPIO_Speed_Low);
 	
 	/* CE pin */
-	TM_GPIO_Init(NRF24L01_CE_PORT, NRF24L01_CE_PIN, TM_GPIO_Mode_OUT, TM_GPIO_OType_PP, TM_GPIO_PuPd_UP, TM_GPIO_Speed_Low);
+	//TM_GPIO_Init(NRF24L01_CE_PORT, NRF24L01_CE_PIN, TM_GPIO_Mode_OUT, TM_GPIO_OType_PP, TM_GPIO_PuPd_UP, TM_GPIO_Speed_Low);
 	
 	/* CSN high = disable SPI */
 	NRF24L01_CSN_HIGH;
@@ -275,7 +217,7 @@ uint8_t TM_NRF24L01_Init(uint8_t channel, uint8_t payload_size) {
 	TM_NRF24L01_InitPins();
 	
 	/* Initialize SPI */
-	TM_SPI_Init(NRF24L01_SPI, NRF24L01_SPI_PINS);
+	//TM_SPI_Init(NRF24L01_SPI, NRF24L01_SPI_PINS);
 	
 	/* Max payload is 32bytes */
 	if (payload_size > 32) {

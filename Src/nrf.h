@@ -6,16 +6,16 @@
 //*******************************************DEFINES*************************************
 
 //Change SPI used. Refer to TM SPI library to check which pins are for SPI
-#define NRF24L01_SPI				SPI3
+#define NRF24L01_SPI				SPI1
 #define NRF24L01_SPI_PINS			TM_SPI_PinsPack_2
 
 //Change CSN pin. This is for SPI communication
 #define NRF24L01_CSN_PORT			GPIOD
-#define NRF24L01_CSN_PIN			GPIO_Pin_7
+#define NRF24L01_CSN_PIN			GPIO_PIN_7
 
 //Change CE pin. This pin is used to enable/disable transmitter/receiver functionality
 #define NRF24L01_CE_PORT			GPIOD
-#define NRF24L01_CE_PIN				GPIO_Pin_8
+#define NRF24L01_CE_PIN				GPIO_PIN_8
 
 /* Default SPI used */
 #ifndef NRF24L01_SPI
