@@ -3,48 +3,6 @@
 #include "main.h"
 #include "stm32f4xx_hal.h"
 
-//*******************************************DEFINES*************************************
-
-//Change SPI used. Refer to TM SPI library to check which pins are for SPI
-#define NRF24L01_SPI				SPI1
-#define NRF24L01_SPI_PINS			TM_SPI_PinsPack_2
-
-//Change CSN pin. This is for SPI communication
-#define NRF24L01_CSN_PORT			GPIOD
-#define NRF24L01_CSN_PIN			GPIO_PIN_7
-
-//Change CE pin. This pin is used to enable/disable transmitter/receiver functionality
-#define NRF24L01_CE_PORT			GPIOD
-#define NRF24L01_CE_PIN				GPIO_PIN_8
-
-/* Default SPI used */
-#ifndef NRF24L01_SPI
-#define NRF24L01_SPI				SPI3
-#define NRF24L01_SPI_PINS			TM_SPI_PinsPack_2
-#endif
-
-/* SPI chip enable pin */
-#ifndef NRF24L01_CSN_PIN
-#define NRF24L01_CSN_PORT			GPIOD
-#define NRF24L01_CSN_PIN			GPIO_PIN_7
-#endif
-
-/* Chip enable for transmitting */
-#ifndef NRF24L01_CE_PIN
-#define NRF24L01_CE_PORT			GPIOD
-#define NRF24L01_CE_PIN				GPIO_PIN_8
-#endif
-
-/* Pins configuration */
-#define NRF24L01_CE_LOW				HAL_GPIO_WritePin(NRF24L01_CE_PORT, NRF24L01_CE_PIN , RESET)
-#define NRF24L01_CE_HIGH			HAL_GPIO_WritePin(NRF24L01_CE_PORT, NRF24L01_CE_PIN , SET)
-#define NRF24L01_CSN_LOW			HAL_GPIO_WritePin(NRF24L01_CSN_PORT, NRF24L01_CSN_PIN , RESET)
-#define NRF24L01_CSN_HIGH			HAL_GPIO_WritePin(NRF24L01_CSN_PORT, NRF24L01_CSN_PIN , SET)
-
-/* Interrupt masks */
-#define NRF24L01_IRQ_DATA_READY     0x40 /*!< Data ready for receive */
-#define NRF24L01_IRQ_TRAN_OK        0x20 /*!< Transmission went OK */
-#define NRF24L01_IRQ_MAX_RT         0x10 /*!< Max retransmissions reached, last transmission failed */
 //-----------------------------Defines-2--------------------------------------------------------------
 #define _BV(x) (1<<(x))
 
@@ -153,68 +111,65 @@
 
 //**********************************************************************************
 
-typedef union _TM_NRF24L01_IRQ_t {
-	struct {
-		uint8_t reserved0:4;
-		uint8_t MaxRT:1;     /*!< Set to 1 if MAX retransmissions flag is set */
-		uint8_t DataSent:1;  /*!< Set to 1 if last transmission is OK */
-		uint8_t DataReady:1; /*!< Set to 1 if data are ready to be read */
-		uint8_t reserved1:1;
-	} F;
-	uint8_t Status;          /*!< NRF status register value */
-} TM_NRF24L01_IRQ_t;
-
-typedef enum _TM_NRF24L01_Transmit_Status_t {
-	TM_NRF24L01_Transmit_Status_Lost = 0x00,   /*!< Message is lost, reached maximum number of retransmissions */
-	TM_NRF24L01_Transmit_Status_Ok = 0x01,     /*!< Message sent successfully */
-	TM_NRF24L01_Transmit_Status_Sending = 0xFF /*!< Message is still sending */
-} TM_NRF24L01_Transmit_Status_t;
-
-typedef enum {
-	TM_GPIO_Mode_IN = 0x00,  /*!< GPIO Pin as General Purpose Input */
-	TM_GPIO_Mode_OUT = 0x01, /*!< GPIO Pin as General Purpose Output */
-	TM_GPIO_Mode_AF = 0x02,  /*!< GPIO Pin as Alternate Function */
-	TM_GPIO_Mode_AN = 0x03,  /*!< GPIO Pin as Analog input/output */
-} TM_GPIO_Mode_t;
-
-typedef enum {
-	TM_GPIO_OType_PP = 0x00, /*!< GPIO Output Type Push-Pull */
-	TM_GPIO_OType_OD = 0x01  /*!< GPIO Output Type Open-Drain */
-} TM_GPIO_OType_t;
-
-typedef enum {
-	TM_GPIO_PuPd_NOPULL = 0x00, /*!< No pull resistor */
-	TM_GPIO_PuPd_UP = 0x01,     /*!< Pull up resistor enabled */
-	TM_GPIO_PuPd_DOWN = 0x02    /*!< Pull down resistor enabled */
-} TM_GPIO_PuPd_t;
-
-typedef enum {
-	TM_GPIO_Speed_Low = 0x00,    /*!< GPIO Speed Low */
-	TM_GPIO_Speed_Medium = 0x01, /*!< GPIO Speed Medium */
-	TM_GPIO_Speed_Fast = 0x02,   /*!< GPIO Speed Fast, not available on STM32F0xx devices */
-	TM_GPIO_Speed_High = 0x03    /*!< GPIO Speed High */
-} TM_GPIO_Speed_t;
+//1. Power Amplifier function, NRF24_setPALevel() 
+typedef enum { 
+	RF24_PA_m18dB = 0,
+	RF24_PA_m12dB,
+	RF24_PA_m6dB,
+	RF24_PA_0dB,
+	RF24_PA_ERROR 
+}rf24_pa_dbm_e ;
+//2. NRF24_setDataRate() input
+typedef enum { 
+	RF24_1MBPS = 0,
+	RF24_2MBPS,
+	RF24_250KBPS
+}rf24_datarate_e;
+//3. NRF24_setCRCLength() input
+typedef enum { 
+	RF24_CRC_DISABLED = 0,
+	RF24_CRC_8,
+	RF24_CRC_16
+}rf24_crclength_e;
+//4. Pipe address registers
+static const uint8_t NRF24_ADDR_REGS[7] = {
+		REG_RX_ADDR_P0,
+		REG_RX_ADDR_P1,
+		REG_RX_ADDR_P2,
+		REG_RX_ADDR_P3,
+		REG_RX_ADDR_P4,
+		REG_RX_ADDR_P5,
+		REG_TX_ADDR
+};
+//5. RX_PW_Px registers addresses
+static const uint8_t RF24_RX_PW_PIPE[6] = {
+		REG_RX_PW_P0, 
+		REG_RX_PW_P1,
+		REG_RX_PW_P2,
+		REG_RX_PW_P3,
+		REG_RX_PW_P4,
+		REG_RX_PW_P5
+};
+//**** Functions prototypes ****//
 //-------------------------------maybe unnecessary--------------------------------------
 /**
  * @brief  Data rate enumeration
  */
-typedef enum _TM_NRF24L01_DataRate_t {
-	TM_NRF24L01_DataRate_2M = 0x00, /*!< Data rate set to 2Mbps */
-	TM_NRF24L01_DataRate_1M,        /*!< Data rate set to 1Mbps */
-	TM_NRF24L01_DataRate_250k       /*!< Data rate set to 250kbps */
-} TM_NRF24L01_DataRate_t;
-
-/**
- * @brief  Output power enumeration
- */
-typedef enum _TM_NRF24L01_OutputPower_t {
-	TM_NRF24L01_OutputPower_M18dBm = 0x00,/*!< Output power set to -18dBm */
-	TM_NRF24L01_OutputPower_M12dBm,       /*!< Output power set to -12dBm */
-	TM_NRF24L01_OutputPower_M6dBm,        /*!< Output power set to -6dBm */
-	TM_NRF24L01_OutputPower_0dBm          /*!< Output power set to 0dBm */
-} TM_NRF24L01_OutputPower_t;
-
 //*****************************************FUNCTIONS******************************************
+//Microsecond delay function
+void NRF24_DelayMicroSeconds(uint32_t uSec);
+
+//1. Chip Select function
+void NRF24_csn(int mode);
+//2. Chip Enable
+void NRF24_ce(int level);
+//3. Read single byte from a register
+uint8_t NRF24_read_register(uint8_t reg);
+//4. Read multiple bytes register
+void NRF24_read_registerN(uint8_t reg, uint8_t *buf, uint8_t len);
+//5. Write single byte register
+void NRF24_write_register(uint8_t reg, uint8_t value);
+
 
 /**
  * @brief  Initializes NRF24L01+ module
