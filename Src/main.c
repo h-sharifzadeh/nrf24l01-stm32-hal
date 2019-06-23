@@ -44,6 +44,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "nrf.h"
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -77,11 +78,45 @@ static void MX_USART2_UART_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
+volatile extern int flag;
+volatile int flag = 0 ; 
+
+
+//------------------------------uart-functions--------------------------------------
+int input_num = 0 ;
+char input_data[32] ;
+char c1;
+char* c = &c1;
+char c2;
+char* c3 = &c2;
+
+void print(const char* msg){
+	static uint8_t newline = '\n';
+	int l = strlen(msg);
+	HAL_UART_Transmit(&huart2, (uint8_t*) msg, l, 100);
+	HAL_UART_Transmit(&huart2, &newline, 1, 100);
+}
+
+void get_input(void){
+	
+	print("ENTER number of input charachters:");
+	while(HAL_UART_Receive(&huart2, (unsigned char*)c3,32,HAL_MAX_DELAY) != HAL_OK){};
+	input_num = (uint32_t)(c[0] - '0') + (uint32_t)((c[1] - '0')*10);
+	if (input_num > 32)
+	{ 
+	input_num = 32;
+	}
+	while(HAL_UART_Receive(&huart2, (unsigned char*)c,(uint8_t)input_num,HAL_MAX_DELAY) != HAL_OK){};
+	for(int i = 0; i < input_num ; i++) input_data[i] = c[i];
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint64_t TxpipeAddrs = 0x11223344AA;
+char myTxData[32] ;
+char AckPayload[32];
+char myRxData[50];
 /* USER CODE END 0 */
 
 /**
@@ -115,7 +150,10 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-
+	//-----------------------------nrf-startup----------------------------------
+	NRF24_begin(GPIOB, CSNpin_Pin, GPIO_PIN_9, hspi1);
+	nrf24_DebugUART_Init(huart2);
+	
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -123,8 +161,53 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
+			
 
     /* USER CODE BEGIN 3 */
+		
+		
+		if (flag == 1){
+			for(int i = 0; i < 32 ; i++) myTxData[i] = input_data[i] ;
+			
+		//-----------------------------Tx-setting-----------------------------	
+			NRF24_stopListening();
+			NRF24_openWritingPipe(TxpipeAddrs);
+			NRF24_setAutoAck(true);
+			NRF24_setChannel(52);
+			NRF24_setPayloadSize(32);
+			NRF24_enableDynamicPayloads();
+			NRF24_enableAckPayload();
+			
+			if(NRF24_write(myTxData, 32))
+			{
+				NRF24_read(AckPayload, 32);
+				HAL_UART_Transmit(&huart2, (uint8_t *)"Transmitted Successfully\r\n", strlen("Transmitted Successfully\r\n"), 10);
+					
+				char myDataack[80];
+				sprintf(myDataack, "AckPayload:  %s \r\n", AckPayload);
+				HAL_UART_Transmit(&huart2, (uint8_t *)myDataack, strlen(myDataack), 10);
+			}
+		
+			
+		}
+		
+	//-----------------------------Rx-setting----------------------------------
+		NRF24_setAutoAck(true);
+		NRF24_setChannel(52);
+		NRF24_setPayloadSize(32);
+		NRF24_openReadingPipe(1, RxpipeAddrs);
+		NRF24_enableDynamicPayloads();
+		NRF24_enableAckPayload();
+		
+		NRF24_startListening();
+		
+		if(NRF24_available())
+		{
+			NRF24_read(myRxData, 32);
+			NRF24_writeAckPayload(1, myAckPayload, 32);
+			myRxData[32] = '\r'; myRxData[32+1] = '\n';
+			HAL_UART_Transmit(&huart2, (uint8_t *)myRxData, 32+2, 10);
+		}
 		
   }
   /* USER CODE END 3 */
