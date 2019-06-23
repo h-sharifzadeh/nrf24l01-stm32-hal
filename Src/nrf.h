@@ -169,24 +169,38 @@ uint8_t NRF24_read_register(uint8_t reg);
 void NRF24_read_registerN(uint8_t reg, uint8_t *buf, uint8_t len);
 //5. Write single byte register
 void NRF24_write_register(uint8_t reg, uint8_t value);
+//6. Write multipl bytes register
+void NRF24_write_registerN(uint8_t reg, const uint8_t* buf, uint8_t len);
+//7. Write transmit payload
+void NRF24_write_payload(const void* buf, uint8_t len);
+//8. Read receive payload
+void NRF24_read_payload(void* buf, uint8_t len);
+//9. Flush Tx buffer
+void NRF24_flush_tx(void);
+//10. Flush Rx buffer
+void NRF24_flush_rx(void);
+//11. Get status register value
+uint8_t NRF24_get_status(void);
 
+//12. Begin function
+void NRF24_begin(GPIO_TypeDef *nrf24PORT, uint16_t nrfCSN_Pin, uint16_t nrfCE_Pin, SPI_HandleTypeDef nrfSPI);
+//13. Listen on open pipes for reading (Must call NRF24_openReadingPipe() first)
+void NRF24_startListening(void);
+//14. Stop listening (essential before any write operation)
+void NRF24_stopListening(void);
 
-/**
- * @brief  Initializes NRF24L01+ module
- * @param  channel: channel you will use for communication, from 0 to 125 eg. working frequency from 2.4 to 2.525 GHz
- * @param  payload_size: maximum data to be sent in one packet from one NRF to another.
- * @note   Maximal payload size is 32bytes
- * @retval 1
- */
-uint8_t TM_NRF24L01_Init(uint8_t channel, uint8_t payload_size);
+//15. Write(Transmit data), returns true if successfully sent
+bool NRF24_write( const void* buf, uint8_t len );
+//16. Check for available data to read
+bool NRF24_available(void);
+//17. Read received data
+bool NRF24_read( void* buf, uint8_t len );
+//18. Open Tx pipe for writing (Cannot perform this while Listenning, has to call NRF24_stopListening)
+void NRF24_openWritingPipe(uint64_t address);
+//19. Open reading pipe
+void NRF24_openReadingPipe(uint8_t number, uint64_t address);
+//20 set transmit retries (rf24_Retries_e) and delay
 
-/**
- * @brief  Sets own address. This is used for settings own id when communication with other modules
- * @note   "Own" address of one device must be the same as "TX" address of other device (and vice versa),
- *         if you want to get successful communication
- * @param  *adr: Pointer to 5-bytes length array with address
- * @retval None
- */
 void TM_NRF24L01_SetMyAddress(uint8_t* adr);
 
 /**
