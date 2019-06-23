@@ -43,7 +43,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "nrf.h"
+//#include "nrf.h"
 #include "string.h"
 #include "NRF24.h"
 /* USER CODE END Includes */
@@ -84,6 +84,8 @@ volatile int flag = 0 ;
 
 
 //------------------------------uart-functions--------------------------------------
+uint64_t RxpipeAddrs = 0x11223344AA;
+const void* myAckPayload ;
 int input_num = 0 ;
 char input_data[32] ;
 char c1;
@@ -169,7 +171,7 @@ void ReceiveMode(void){
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	TM_NRF24L01_PowerUpRx();
+	//TM_NRF24L01_PowerUpRx();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -195,7 +197,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 	//-----------------------------nrf-startup----------------------------------
-	NRF24_begin(GPIOB, CSNpin_Pin, GPIO_PIN_9, hspi1);
+	NRF24_begin(GPIOB, NRF24L01_CSN_Pin, GPIO_PIN_9, hspi1);
 	nrf24_DebugUART_Init(huart2);
 	
   /* USER CODE END 2 */
