@@ -43,9 +43,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "nrf.h"
+#include "nrf.h"
 #include "string.h"
-#include "NRF24.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,12 +119,12 @@ void get_input(void){
 
 void TransferMode(void){
 	//-----------------------------Tx-setting-----------------------------	
+			get_input();
 			NRF24_stopListening();
 			NRF24_openWritingPipe(TxpipeAddrs);
 			NRF24_setAutoAck(true);
 			NRF24_setChannel(52);
 			NRF24_setPayloadSize(32);
-			NRF24_enableDynamicPayloads();
 			NRF24_enableAckPayload();
 			
 			if(NRF24_write(myTxData, 32))
@@ -136,6 +135,7 @@ void TransferMode(void){
 				char myDataack[80];
 				sprintf(myDataack, "AckPayload:  %s \r\n", AckPayload);
 				print(myDataack);
+				flag = 0 ;
 			}
 }
 void ReceiveMode(void){
@@ -198,7 +198,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
 	//-----------------------------nrf-startup----------------------------------
 	NRF24_begin(GPIOB, NRF24L01_CSN_Pin, GPIO_PIN_9, hspi1);
-	nrf24_DebugUART_Init(huart2);
 	
   /* USER CODE END 2 */
 

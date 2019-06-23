@@ -1,12 +1,12 @@
 # include "nrf.h"
 
 
-typedef struct {
-	uint8_t PayloadSize;				//Payload size
-	uint8_t Channel;					//Channel selected
-	TM_NRF24L01_OutputPower_t OutPwr;	//Output power
-	TM_NRF24L01_DataRate_t DataRate;	//Data rate
-} TM_NRF24L01_t;
+//typedef struct {
+//	uint8_t PayloadSize;				//Payload size
+//	uint8_t Channel;					//Channel selected
+//	TM_NRF24L01_OutputPower_t OutPwr;	//Output power
+//	TM_NRF24L01_DataRate_t DataRate;	//Data rate
+//} TM_NRF24L01_t;
 
 //------------------------------DEFINES--------------------------------------------------------------
 //*** Variables declaration ***//
@@ -205,7 +205,6 @@ void NRF24_begin(GPIO_TypeDef *nrf24PORT, uint16_t nrfCSN_Pin, uint16_t nrfCE_Pi
 	NRF24_ACTIVATE_cmd();
 	NRF24_write_register(0x1c, 0);
 	NRF24_write_register(0x1d, 0);
-	printRadioSettings();
 	//Initialise retries 15 and delay 1250 usec
 	NRF24_setRetries(15, 15);
 	//Initialise PA level to max (0dB)
@@ -365,41 +364,6 @@ uint8_t NRF24_getPayloadSize(void)
 uint8_t NRF24_getDynamicPayloadSize(void)
 {
 	return NRF24_read_register(CMD_R_RX_PL_WID);
-}
-//25. Enable payload on Ackknowledge packet
-void NRF24_enableAckPayload(void)
-{
-	//Need to enable dynamic payload and Ack payload together
-	 NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) | _BV(BIT_EN_ACK_PAY) | _BV(BIT_EN_DPL) );
-	if(!NRF24_read_register(REG_FEATURE))
-	{
-		NRF24_ACTIVATE_cmd();
-		NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) | _BV(BIT_EN_ACK_PAY) | _BV(BIT_EN_DPL) );
-	}
-	// Enable dynamic payload on pipes 0 & 1
-	NRF24_write_register(REG_DYNPD,NRF24_read_register(REG_DYNPD) | _BV(BIT_DPL_P1) | _BV(BIT_DPL_P0));
-}
-//26. Enable dynamic payloads
-void NRF24_enableDynamicPayloads(void)
-{
-	//Enable dynamic payload through FEATURE register
-	NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) |  _BV(BIT_EN_DPL) );
-	if(!NRF24_read_register(REG_FEATURE))
-	{
-		NRF24_ACTIVATE_cmd();
-		NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) |  _BV(BIT_EN_DPL) );
-	}
-	//Enable Dynamic payload on all pipes
-	NRF24_write_register(REG_DYNPD,NRF24_read_register(REG_DYNPD) | _BV(BIT_DPL_P5) | _BV(BIT_DPL_P4) | _BV(BIT_DPL_P3) | _BV(BIT_DPL_P2) | _BV(BIT_DPL_P1) | _BV(BIT_DPL_P0));
-  dynamic_payloads_enabled = true;
-	
-}
-void NRF24_disableDynamicPayloads(void)
-{
-	NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) &  ~(_BV(BIT_EN_DPL)) );
-	//Disable for all pipes 
-	NRF24_write_register(REG_DYNPD,0);
-	dynamic_payloads_enabled = false;
 }
 //25. Enable payload on Ackknowledge packet
 void NRF24_enableAckPayload(void)
@@ -687,15 +651,67 @@ void NRF24_startWrite( const void* buf, uint8_t len )
   NRF24_DelayMicroSeconds(15);
   NRF24_ce(0);
 }
-
-
-uint8_t TM_NRF24L01_ReadRegister(uint8_t reg) {
-	uint8_t value;
-	NRF24L01_CSN_LOW;
-	TM_SPI_Send(NRF24L01_SPI, NRF24L01_READ_REGISTER_MASK(reg));
-	value = TM_SPI_Send(NRF24L01_SPI, NRF24L01_NOP_MASK);
-	NRF24L01_CSN_HIGH;
+//41. Write acknowledge payload
+void NRF24_writeAckPayload(uint8_t pipe, const void* buf, uint8_t len)
+{
+	const uint8_t* current = (uint8_t *)buf;
+	const uint8_t max_payload_size = 32;
+  uint8_t data_len = MIN(len,max_payload_size);
 	
-	return value;
+  NRF24_csn(0);
+	NRF24_write_registerN(CMD_W_ACK_PAYLOAD | ( pipe & 0x7 ) , current, data_len);
+  NRF24_csn(1);
 }
+//42. Check if an Ack payload is available
+bool NRF24_isAckPayloadAvailable(void)
+{
+	bool result = ack_payload_available;
+  ack_payload_available = false;
+  return result;
+}
+//43. Check interrupt flags
+void NRF24_whatHappened(bool *tx_ok,bool *tx_fail,bool *rx_ready)
+{
+	uint8_t status = NRF24_get_status();
+	*tx_ok = 0;
+	NRF24_write_register(REG_STATUS,_BV(BIT_RX_DR) | _BV(BIT_TX_DS) | _BV(BIT_MAX_RT) );
+  // Report to the user what happened
+  *tx_ok = status & _BV(BIT_TX_DS);
+  *tx_fail = status & _BV(BIT_MAX_RT);
+  *rx_ready = status & _BV(BIT_RX_DR);
+}
+//44. Test if there is a carrier on the previous listenning period (useful to check for intereference)
+bool NRF24_testCarrier(void)
+{
+	return NRF24_read_register(REG_CD) & 1;
+}
+//45. Test if a signal carrier exists (=> -64dB), only for NRF24L01+
+bool NRF24_testRPD(void)
+{
+	return NRF24_read_register(REG_RPD) & 1;
+}
+
+//46. Reset Status
+void NRF24_resetStatus(void)
+{
+	NRF24_write_register(REG_STATUS,_BV(BIT_RX_DR) | _BV(BIT_TX_DS) | _BV(BIT_MAX_RT) );
+}
+
+//47. ACTIVATE cmd
+void NRF24_ACTIVATE_cmd(void)
+{
+	uint8_t cmdRxBuf[2];
+	//Read data from Rx payload buffer
+	NRF24_csn(0);
+	cmdRxBuf[0] = CMD_ACTIVATE;
+	cmdRxBuf[1] = 0x73;
+	HAL_SPI_Transmit(&nrf24_hspi, cmdRxBuf, 2, 100);
+	NRF24_csn(1);
+}
+//48. Get AckPayload Size
+uint8_t NRF24_GetAckPayloadSize(void)
+{
+	return ack_payload_length;
+}
+
 

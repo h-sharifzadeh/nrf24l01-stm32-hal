@@ -2,7 +2,7 @@
 
 #include "main.h"
 #include "stm32f4xx_hal.h"
-
+#include "stdbool.h"
 //-----------------------------Defines-2--------------------------------------------------------------
 #define _BV(x) (1<<(x))
 
@@ -200,6 +200,7 @@ void NRF24_openWritingPipe(uint64_t address);
 //19. Open reading pipe
 void NRF24_openReadingPipe(uint8_t number, uint64_t address);
 //20 set transmit retries (rf24_Retries_e) and delay
+void NRF24_setRetries(uint8_t delay, uint8_t count);
 //21. Set RF channel frequency
 void NRF24_setChannel(uint8_t channel);
 
@@ -242,67 +243,19 @@ void NRF24_powerDown(void);
 bool NRF24_availablePipe(uint8_t* pipe_num);
 //40. Start write (for IRQ mode)
 void NRF24_startWrite( const void* buf, uint8_t len );
-
-
-void TM_NRF24L01_PowerUpTx(void);
-
-/**
- * @brief  Sets NRF24L01+ to RX mode
- * @note   In this mode is NRF able to receive data from another NRF module.
- *         This is default mode and should be used all the time, except when sending data
- * @param  None
- * @retval None
- */
-void TM_NRF24L01_PowerUpRx(void);
-
-/**
- * @brief  Gets transmissions status
- * @param  None
- * @retval Transmission status. Return is based on @ref TM_NRF24L01_Transmit_Status_t enumeration
- */
-TM_NRF24L01_Transmit_Status_t TM_NRF24L01_GetTransmissionStatus(void);
-
-/**
- * @brief  Transmits data with NRF24L01+ to another NRF module
- * @param  *data: Pointer to 8-bit array with data.
- *         Maximum length of array can be the same as "payload_size" parameter on initialization
- * @retval None
- */
-void TM_NRF24L01_Transmit(uint8_t *data);
-
-/**
- * @brief  Checks if data is ready to be read from NRF24L01+
- * @param  None
- * @retval Data ready status:
- *            - 0: No data available for receive in bufferReturns
- *            - > 0: Data is ready to be collected
- */
-uint8_t TM_NRF24L01_DataReady(void);
-
-/**
- * @brief  Gets data from NRF24L01+
- * @param  *data: Pointer to 8-bits array where data from NRF will be saved
- * @retval None
- */
-void TM_NRF24L01_GetData(uint8_t *data);
-
-/**
- * @brief  Sets working channel
- * @note   Channel value is just an offset in units MHz from 2.4GHz
- *         For example, if you select channel 65, then operation frequency will be set to 2.465GHz.
- * @param  channel: RF channel where device will operate
- * @retval None 
- */
-void TM_NRF24L01_SetChannel(uint8_t channel);
-
-/**
- * @brief  Gets NRLF+ status register value
- * @param  None
- * @retval Status register from NRF
- */
-uint8_t TM_NRF24L01_GetStatus(void);
-
-//----------------------------------------------unnecessory-functions-----------------------------------
-
-/* Private */
-void TM_NRF24L01_WriteRegister(uint8_t reg, uint8_t value);
+//41. Write acknowledge payload
+void NRF24_writeAckPayload(uint8_t pipe, const void* buf, uint8_t len);
+//42. Check if an Ack payload is available
+bool NRF24_isAckPayloadAvailable(void);
+//43. Check interrupt flags
+void NRF24_whatHappened(bool *tx_ok,bool *tx_fail,bool *rx_ready);
+//44. Test if there is a carrier on the previous listenning period (useful to check for intereference)
+bool NRF24_testCarrier(void);
+//45. Test if a signal carrier exists (=> -64dB), only for NRF24L01+
+bool NRF24_testRPD(void) ;
+//46. Reset Status
+void NRF24_resetStatus(void);
+//47. ACTIVATE cmd
+void NRF24_ACTIVATE_cmd(void);
+//48. Get AckPayload Size
+uint8_t NRF24_GetAckPayloadSize(void);
