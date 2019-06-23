@@ -80,7 +80,7 @@ static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 volatile extern int flag;
-volatile int flag = 0 ; 
+volatile int flag = 0 ;
 
 
 //------------------------------uart-functions--------------------------------------
@@ -205,7 +205,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-			
+
     /* USER CODE BEGIN 3 */
 		
 		if (flag == 1){
