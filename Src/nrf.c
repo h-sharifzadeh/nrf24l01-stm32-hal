@@ -499,34 +499,195 @@ void NRF24_setPALevel( rf24_pa_dbm_e level )
 
 
 
+//31. Get transmit power level
+rf24_pa_dbm_e NRF24_getPALevel( void )
+{
+	rf24_pa_dbm_e result = RF24_PA_ERROR ;
+  uint8_t power = NRF24_read_register(REG_RF_SETUP) & (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH));
 
-void TM_NRF24L01_SetTxAddress(uint8_t *adr) {
-	TM_NRF24L01_WriteRegisterMulti(NRF24L01_REG_RX_ADDR_P0, adr, 5);
-	TM_NRF24L01_WriteRegisterMulti(NRF24L01_REG_TX_ADDR, adr, 5);
+  // switch uses RAM (evil!)
+  if ( power == (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) )
+  {
+    result = RF24_PA_0dB ;
+  }
+  else if ( power == _BV(RF_PWR_HIGH) )
+  {
+    result = RF24_PA_m6dB ;
+  }
+  else if ( power == _BV(RF_PWR_LOW) )
+  {
+    result = RF24_PA_m12dB ;
+  }
+  else
+  {
+    result = RF24_PA_m18dB ;
+  }
+
+  return result ;
+}
+//32. Set data rate (250 Kbps, 1Mbps, 2Mbps)
+bool NRF24_setDataRate(rf24_datarate_e speed)
+{
+	bool result = false;
+  uint8_t setup = NRF24_read_register(REG_RF_SETUP) ;
+
+  // HIGH and LOW '00' is 1Mbs - our default
+  wide_band = false ;
+  setup &= ~(_BV(RF_DR_LOW) | _BV(RF_DR_HIGH)) ;
+  if( speed == RF24_250KBPS )
+  {
+    // Must set the RF_DR_LOW to 1; RF_DR_HIGH (used to be RF_DR) is already 0
+    // Making it '10'.
+    wide_band = false ;
+    setup |= _BV( RF_DR_LOW ) ;
+  }
+  else
+  {
+    // Set 2Mbs, RF_DR (RF_DR_HIGH) is set 1
+    // Making it '01'
+    if ( speed == RF24_2MBPS )
+    {
+      wide_band = true ;
+      setup |= _BV(RF_DR_HIGH);
+    }
+    else
+    {
+      // 1Mbs
+      wide_band = false ;
+    }
+  }
+  NRF24_write_register(REG_RF_SETUP,setup);
+
+  // Verify our result
+  if ( NRF24_read_register(REG_RF_SETUP) == setup )
+  {
+    result = true;
+  }
+  else
+  {
+    wide_band = false;
+  }
+
+  return result;
+}
+//33. Get data rate
+rf24_datarate_e NRF24_getDataRate( void )
+{
+	rf24_datarate_e result ;
+  uint8_t dr = NRF24_read_register(REG_RF_SETUP) & (_BV(RF_DR_LOW) | _BV(RF_DR_HIGH));
+  
+  // switch uses RAM (evil!)
+  // Order matters in our case below
+  if ( dr == _BV(RF_DR_LOW) )
+  {
+    // '10' = 250KBPS
+    result = RF24_250KBPS ;
+  }
+  else if ( dr == _BV(RF_DR_HIGH) )
+  {
+    // '01' = 2MBPS
+    result = RF24_2MBPS ;
+  }
+  else
+  {
+    // '00' = 1MBPS
+    result = RF24_1MBPS ;
+  }
+  return result ;
+}
+//34. Set crc length (disable, 8-bits or 16-bits)
+void NRF24_setCRCLength(rf24_crclength_e length)
+{
+	uint8_t config = NRF24_read_register(REG_CONFIG) & ~( _BV(BIT_CRCO) | _BV(BIT_EN_CRC)) ;
+  
+  // switch uses RAM
+  if ( length == RF24_CRC_DISABLED )
+  {
+    // Do nothing, we turned it off above. 
+  }
+  else if ( length == RF24_CRC_8 )
+  {
+    config |= _BV(BIT_EN_CRC);
+  }
+  else
+  {
+    config |= _BV(BIT_EN_CRC);
+    config |= _BV( BIT_CRCO );
+  }
+  NRF24_write_register( REG_CONFIG, config );
+}
+//35. Get CRC length
+rf24_crclength_e NRF24_getCRCLength(void)
+{
+	rf24_crclength_e result = RF24_CRC_DISABLED;
+  uint8_t config = NRF24_read_register(REG_CONFIG) & ( _BV(BIT_CRCO) | _BV(BIT_EN_CRC)) ;
+
+  if ( config & _BV(BIT_EN_CRC ) )
+  {
+    if ( config & _BV(BIT_CRCO) )
+      result = RF24_CRC_16;
+    else
+      result = RF24_CRC_8;
+  }
+
+  return result;
+}
+//36. Disable CRC
+void NRF24_disableCRC( void )
+{
+	uint8_t disable = NRF24_read_register(REG_CONFIG) & ~_BV(BIT_EN_CRC) ;
+  NRF24_write_register( REG_CONFIG, disable ) ;
+}
+//37. power up
+void NRF24_powerUp(void)
+{
+	NRF24_write_register(REG_CONFIG,NRF24_read_register(REG_CONFIG) | _BV(BIT_PWR_UP));
+}
+//38. power down
+void NRF24_powerDown(void)
+{
+	NRF24_write_register(REG_CONFIG,NRF24_read_register(REG_CONFIG) & ~_BV(BIT_PWR_UP));
+}
+//39. Check if data are available and on which pipe (Use this for multiple rx pipes)
+bool NRF24_availablePipe(uint8_t* pipe_num)
+{
+	uint8_t status = NRF24_get_status();
+
+  bool result = ( status & _BV(BIT_RX_DR) );
+
+  if (result)
+  {
+    // If the caller wants the pipe number, include that
+    if ( pipe_num )
+      *pipe_num = ( status >> BIT_RX_P_NO ) & 0x7;
+
+    // Clear the status bit
+    NRF24_write_register(REG_STATUS,_BV(BIT_RX_DR) );
+
+    // Handle ack payload receipt
+    if ( status & _BV(BIT_TX_DS) )
+    {
+      NRF24_write_register(REG_STATUS,_BV(BIT_TX_DS));
+    }
+  }
+  return result;
+}
+//40. Start write (for IRQ mode)
+void NRF24_startWrite( const void* buf, uint8_t len )
+{
+	// Transmitter power-up
+  NRF24_write_register(REG_CONFIG, ( NRF24_read_register(REG_CONFIG) | _BV(BIT_PWR_UP) ) & ~_BV(BIT_PRIM_RX) );
+  NRF24_DelayMicroSeconds(150);
+
+  // Send the payload
+  NRF24_write_payload( buf, len );
+
+  // Enable Tx for 15usec
+  NRF24_ce(1);
+  NRF24_DelayMicroSeconds(15);
+  NRF24_ce(0);
 }
 
-void TM_NRF24L01_WriteBit(uint8_t reg, uint8_t bit, uint8_t value) {
-	uint8_t tmp;
-	/* Read register */
-	tmp = TM_NRF24L01_ReadRegister(reg);
-	/* Make operation */
-	if (value) {
-		tmp |= 1 << bit;
-	} else {
-		tmp &= ~(1 << bit);
-	}
-	/* Write back */
-	TM_NRF24L01_WriteRegister(reg, tmp);
-}
-
-uint8_t TM_NRF24L01_ReadBit(uint8_t reg, uint8_t bit) {
-	uint8_t tmp;
-	tmp = TM_NRF24L01_ReadRegister(reg);
-	if (!NRF24L01_CHECK_BIT(tmp, bit)) {
-		return 0;
-	}
-	return 1;
-}
 
 uint8_t TM_NRF24L01_ReadRegister(uint8_t reg) {
 	uint8_t value;

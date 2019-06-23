@@ -1,13 +1,7 @@
 [PreviousGenFiles]
-<<<<<<< HEAD
-HeaderPath=F:/transmit_and_check/lastproj/nrf24l01-stm32-hal/Inc
-HeaderFiles=stm32f4xx_it.h;stm32f4xx_hal_conf.h;main.h;
-SourcePath=F:/transmit_and_check/lastproj/nrf24l01-stm32-hal/Src
-=======
 HeaderPath=C:/Users/ASUS/Desktop/2/Inc
 HeaderFiles=stm32f4xx_it.h;stm32f4xx_hal_conf.h;main.h;
 SourcePath=C:/Users/ASUS/Desktop/2/Src
->>>>>>> 92230bd22544ab0556aea3223e19c28c2251bac1
 SourceFiles=stm32f4xx_it.c;stm32f4xx_hal_msp.c;main.c;
 
 [PreviousLibFiles]

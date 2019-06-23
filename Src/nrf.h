@@ -222,16 +222,28 @@ void NRF24_setAutoAck(bool enable);
 void NRF24_setAutoAckPipe( uint8_t pipe, bool enable ) ;
 //30. Set transmit power level
 void NRF24_setPALevel( rf24_pa_dbm_e level ) ;
+//31. Get transmit power level
+rf24_pa_dbm_e NRF24_getPALevel( void ) ;
+//32. Set data rate (250 Kbps, 1Mbps, 2Mbps)
+bool NRF24_setDataRate(rf24_datarate_e speed);
+//33. Get data rate
+rf24_datarate_e NRF24_getDataRate( void );
+//34. Set crc length (disable, 8-bits or 16-bits)
+void NRF24_setCRCLength(rf24_crclength_e length);
+//35. Get CRC length
+rf24_crclength_e NRF24_getCRCLength(void);
+//36. Disable CRC
+void NRF24_disableCRC( void ) ;
+//37. power up
+void NRF24_powerUp(void) ;
+//38. power down
+void NRF24_powerDown(void);
+//39. Check if data are available and on which pipe (Use this for multiple rx pipes)
+bool NRF24_availablePipe(uint8_t* pipe_num);
+//40. Start write (for IRQ mode)
+void NRF24_startWrite( const void* buf, uint8_t len );
 
 
-void TM_NRF24L01_SetTxAddress(uint8_t* adr);
-
-/**
- * @brief  Sets NRF24L01+ to TX mode
- * @note   In this mode is NRF able to send data to another NRF module
- * @param  None
- * @retval None
- */
 void TM_NRF24L01_PowerUpTx(void);
 
 /**
