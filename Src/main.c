@@ -109,6 +109,47 @@ void get_input(void){
 	while(HAL_UART_Receive(&huart2, (unsigned char*)c,(uint8_t)input_num,HAL_MAX_DELAY) != HAL_OK){};
 	for(int i = 0; i < input_num ; i++) input_data[i] = c[i];
 }
+
+
+void TransferMode(void){
+	//-----------------------------Tx-setting-----------------------------	
+			NRF24_stopListening();
+			NRF24_openWritingPipe(TxpipeAddrs);
+			NRF24_setAutoAck(true);
+			NRF24_setChannel(52);
+			NRF24_setPayloadSize(32);
+			NRF24_enableDynamicPayloads();
+			NRF24_enableAckPayload();
+			
+			if(NRF24_write(myTxData, 32))
+			{
+				NRF24_read(AckPayload, 32);
+				HAL_UART_Transmit(&huart2, (uint8_t *)"Transmitted Successfully\r\n", strlen("Transmitted Successfully\r\n"), 10);
+					
+				char myDataack[80];
+				sprintf(myDataack, "AckPayload:  %s \r\n", AckPayload);
+				HAL_UART_Transmit(&huart2, (uint8_t *)myDataack, strlen(myDataack), 10);
+			}
+}
+void ReceiveMode(void){
+		//-----------------------------Rx-setting----------------------------------
+		NRF24_setAutoAck(true);
+		NRF24_setChannel(52);
+		NRF24_setPayloadSize(32);
+		NRF24_openReadingPipe(1, RxpipeAddrs);
+		NRF24_enableDynamicPayloads();
+		NRF24_enableAckPayload();
+		
+		NRF24_startListening();
+		
+		if(NRF24_available())
+		{
+			NRF24_read(myRxData, 32);
+			NRF24_writeAckPayload(1, myAckPayload, 32);
+			myRxData[32] = '\r'; myRxData[32+1] = '\n';
+			HAL_UART_Transmit(&huart2, (uint8_t *)myRxData, 32+2, 10);
+		}
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -143,6 +184,7 @@ int main(void)
 
   /* USER CODE BEGIN SysInit */
 
+	
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -165,49 +207,13 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 		
-		
 		if (flag == 1){
 			for(int i = 0; i < 32 ; i++) myTxData[i] = input_data[i] ;
-			
-		//-----------------------------Tx-setting-----------------------------	
-			NRF24_stopListening();
-			NRF24_openWritingPipe(TxpipeAddrs);
-			NRF24_setAutoAck(true);
-			NRF24_setChannel(52);
-			NRF24_setPayloadSize(32);
-			NRF24_enableDynamicPayloads();
-			NRF24_enableAckPayload();
-			
-			if(NRF24_write(myTxData, 32))
-			{
-				NRF24_read(AckPayload, 32);
-				HAL_UART_Transmit(&huart2, (uint8_t *)"Transmitted Successfully\r\n", strlen("Transmitted Successfully\r\n"), 10);
-					
-				char myDataack[80];
-				sprintf(myDataack, "AckPayload:  %s \r\n", AckPayload);
-				HAL_UART_Transmit(&huart2, (uint8_t *)myDataack, strlen(myDataack), 10);
-			}
-		
+			TransferMode();
 			
 		}
 		
-	//-----------------------------Rx-setting----------------------------------
-		NRF24_setAutoAck(true);
-		NRF24_setChannel(52);
-		NRF24_setPayloadSize(32);
-		NRF24_openReadingPipe(1, RxpipeAddrs);
-		NRF24_enableDynamicPayloads();
-		NRF24_enableAckPayload();
-		
-		NRF24_startListening();
-		
-		if(NRF24_available())
-		{
-			NRF24_read(myRxData, 32);
-			NRF24_writeAckPayload(1, myAckPayload, 32);
-			myRxData[32] = '\r'; myRxData[32+1] = '\n';
-			HAL_UART_Transmit(&huart2, (uint8_t *)myRxData, 32+2, 10);
-		}
+	ReceiveMode();
 		
   }
   /* USER CODE END 3 */
