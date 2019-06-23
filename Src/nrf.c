@@ -344,11 +344,161 @@ void NRF24_setRetries(uint8_t delay, uint8_t count)
 }
 
 
-void TM_NRF24L01_SetMyAddress(uint8_t *adr) {
-	NRF24L01_CE_LOW;
-	TM_NRF24L01_WriteRegisterMulti(NRF24L01_REG_RX_ADDR_P1, adr, 5);
-	NRF24L01_CE_HIGH;
+//21. Set RF channel frequency
+void NRF24_setChannel(uint8_t channel)
+{
+	const uint8_t max_channel = 127;
+  NRF24_write_register(REG_RF_CH,MIN(channel,max_channel));
 }
+//22. Set payload size
+void NRF24_setPayloadSize(uint8_t size)
+{
+	const uint8_t max_payload_size = 32;
+  payload_size = MIN(size,max_payload_size);
+}
+//23. Get payload size
+uint8_t NRF24_getPayloadSize(void)
+{
+	return payload_size;
+}
+//24. Get dynamic payload size, of latest packet received
+uint8_t NRF24_getDynamicPayloadSize(void)
+{
+	return NRF24_read_register(CMD_R_RX_PL_WID);
+}
+//25. Enable payload on Ackknowledge packet
+void NRF24_enableAckPayload(void)
+{
+	//Need to enable dynamic payload and Ack payload together
+	 NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) | _BV(BIT_EN_ACK_PAY) | _BV(BIT_EN_DPL) );
+	if(!NRF24_read_register(REG_FEATURE))
+	{
+		NRF24_ACTIVATE_cmd();
+		NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) | _BV(BIT_EN_ACK_PAY) | _BV(BIT_EN_DPL) );
+	}
+	// Enable dynamic payload on pipes 0 & 1
+	NRF24_write_register(REG_DYNPD,NRF24_read_register(REG_DYNPD) | _BV(BIT_DPL_P1) | _BV(BIT_DPL_P0));
+}
+//26. Enable dynamic payloads
+void NRF24_enableDynamicPayloads(void)
+{
+	//Enable dynamic payload through FEATURE register
+	NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) |  _BV(BIT_EN_DPL) );
+	if(!NRF24_read_register(REG_FEATURE))
+	{
+		NRF24_ACTIVATE_cmd();
+		NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) |  _BV(BIT_EN_DPL) );
+	}
+	//Enable Dynamic payload on all pipes
+	NRF24_write_register(REG_DYNPD,NRF24_read_register(REG_DYNPD) | _BV(BIT_DPL_P5) | _BV(BIT_DPL_P4) | _BV(BIT_DPL_P3) | _BV(BIT_DPL_P2) | _BV(BIT_DPL_P1) | _BV(BIT_DPL_P0));
+  dynamic_payloads_enabled = true;
+	
+}
+void NRF24_disableDynamicPayloads(void)
+{
+	NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) &  ~(_BV(BIT_EN_DPL)) );
+	//Disable for all pipes 
+	NRF24_write_register(REG_DYNPD,0);
+	dynamic_payloads_enabled = false;
+}
+//25. Enable payload on Ackknowledge packet
+void NRF24_enableAckPayload(void)
+{
+	//Need to enable dynamic payload and Ack payload together
+	 NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) | _BV(BIT_EN_ACK_PAY) | _BV(BIT_EN_DPL) );
+	if(!NRF24_read_register(REG_FEATURE))
+	{
+		NRF24_ACTIVATE_cmd();
+		NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) | _BV(BIT_EN_ACK_PAY) | _BV(BIT_EN_DPL) );
+	}
+	// Enable dynamic payload on pipes 0 & 1
+	NRF24_write_register(REG_DYNPD,NRF24_read_register(REG_DYNPD) | _BV(BIT_DPL_P1) | _BV(BIT_DPL_P0));
+}
+//26. Enable dynamic payloads
+void NRF24_enableDynamicPayloads(void)
+{
+	//Enable dynamic payload through FEATURE register
+	NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) |  _BV(BIT_EN_DPL) );
+	if(!NRF24_read_register(REG_FEATURE))
+	{
+		NRF24_ACTIVATE_cmd();
+		NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) |  _BV(BIT_EN_DPL) );
+	}
+	//Enable Dynamic payload on all pipes
+	NRF24_write_register(REG_DYNPD,NRF24_read_register(REG_DYNPD) | _BV(BIT_DPL_P5) | _BV(BIT_DPL_P4) | _BV(BIT_DPL_P3) | _BV(BIT_DPL_P2) | _BV(BIT_DPL_P1) | _BV(BIT_DPL_P0));
+  dynamic_payloads_enabled = true;
+	
+}
+void NRF24_disableDynamicPayloads(void)
+{
+	NRF24_write_register(REG_FEATURE,NRF24_read_register(REG_FEATURE) &  ~(_BV(BIT_EN_DPL)) );
+	//Disable for all pipes 
+	NRF24_write_register(REG_DYNPD,0);
+	dynamic_payloads_enabled = false;
+}
+//27. Check if module is NRF24L01+ or normal module
+bool NRF24_isNRF_Plus(void)
+{
+	return p_variant;
+}
+//28. Set Auto Ack for all
+void NRF24_setAutoAck(bool enable)
+{
+	if ( enable )
+    NRF24_write_register(REG_EN_AA, 0x3F);
+  else
+    NRF24_write_register(REG_EN_AA, 0x00);
+}
+//29. Set Auto Ack for certain pipe
+void NRF24_setAutoAckPipe( uint8_t pipe, bool enable )
+{
+	if ( pipe <= 6 )
+  {
+    uint8_t en_aa = NRF24_read_register( REG_EN_AA ) ;
+    if( enable )
+    {
+      en_aa |= _BV(pipe) ;
+    }
+    else
+    {
+      en_aa &= ~_BV(pipe) ;
+    }
+    NRF24_write_register( REG_EN_AA, en_aa ) ;
+  }
+}
+//30. Set transmit power level
+void NRF24_setPALevel( rf24_pa_dbm_e level )
+{
+	uint8_t setup = NRF24_read_register(REG_RF_SETUP) ;
+  setup &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
+ // switch uses RAM (evil!)
+  if ( level == RF24_PA_0dB)
+  {
+    setup |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
+  }
+  else if ( level == RF24_PA_m6dB )
+  {
+    setup |= _BV(RF_PWR_HIGH) ;
+  }
+  else if ( level == RF24_PA_m12dB )
+  {
+    setup |= _BV(RF_PWR_LOW);
+  }
+  else if ( level == RF24_PA_m18dB )
+  {
+    // nothing
+  }
+  else if ( level == RF24_PA_ERROR )
+  {
+    // On error, go to maximum PA
+    setup |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
+  }
+
+  NRF24_write_register( REG_RF_SETUP, setup ) ;
+}
+
+
+
 
 void TM_NRF24L01_SetTxAddress(uint8_t *adr) {
 	TM_NRF24L01_WriteRegisterMulti(NRF24L01_REG_RX_ADDR_P0, adr, 5);

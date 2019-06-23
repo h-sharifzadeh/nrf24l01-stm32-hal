@@ -200,16 +200,30 @@ void NRF24_openWritingPipe(uint64_t address);
 //19. Open reading pipe
 void NRF24_openReadingPipe(uint8_t number, uint64_t address);
 //20 set transmit retries (rf24_Retries_e) and delay
+//21. Set RF channel frequency
+void NRF24_setChannel(uint8_t channel);
 
-void TM_NRF24L01_SetMyAddress(uint8_t* adr);
+//22. Set payload size
+void NRF24_setPayloadSize(uint8_t size);
+//23. Get payload size
+uint8_t NRF24_getPayloadSize(void);
+//24. Get dynamic payload size, of latest packet received
+uint8_t NRF24_getDynamicPayloadSize(void);
+//25. Enable payload on Ackknowledge packet
+void NRF24_enableAckPayload(void);
+//26. Enable dynamic payloads
+void NRF24_enableDynamicPayloads(void);
+void NRF24_disableDynamicPayloads(void);
+//27. Check if module is NRF24L01+ or normal module
+bool NRF24_isNRF_Plus(void) ;
+//28. Set Auto Ack for all
+void NRF24_setAutoAck(bool enable);
+//29. Set Auto Ack for certain pipe
+void NRF24_setAutoAckPipe( uint8_t pipe, bool enable ) ;
+//30. Set transmit power level
+void NRF24_setPALevel( rf24_pa_dbm_e level ) ;
 
-/**
- * @brief  Sets address you will communicate with
- * @note   "Own" address of one device must be the same as "TX" address of other device (and vice versa),
- *         if you want to get successful communication
- * @param  *adr: Pointer to 5-bytes length array with address
- * @retval None
- */
+
 void TM_NRF24L01_SetTxAddress(uint8_t* adr);
 
 /**
