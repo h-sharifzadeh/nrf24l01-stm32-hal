@@ -43,7 +43,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "nrf.h"
+//#include "nrf.h"
 #include "string.h"
 #include "NRF24.h"
 /* USER CODE END Includes */
@@ -84,6 +84,8 @@ volatile int flag = 0 ;
 
 
 //------------------------------uart-functions--------------------------------------
+uint64_t RxpipeAddrs = 0x11223344AA;
+const void* myAckPayload ;
 int input_num = 0 ;
 char input_data[32] ;
 char c1;
@@ -169,7 +171,7 @@ void ReceiveMode(void){
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	TM_NRF24L01_PowerUpRx();
+	//TM_NRF24L01_PowerUpRx();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -195,7 +197,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 	//-----------------------------nrf-startup----------------------------------
-	NRF24_begin(GPIOB, CSNpin_Pin, GPIO_PIN_9, hspi1);
+	NRF24_begin(GPIOB, NRF24L01_CSN_Pin, GPIO_PIN_9, hspi1);
 	nrf24_DebugUART_Init(huart2);
 	
   /* USER CODE END 2 */
@@ -393,14 +395,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOOT1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : CLK_IN_Pin */
-  GPIO_InitStruct.Pin = CLK_IN_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-  HAL_GPIO_Init(CLK_IN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : NRF24L01_CE_Pin LD4_Pin LD3_Pin LD5_Pin 
                            LD6_Pin Audio_RST_Pin NRF24L01_CSN_Pin */
