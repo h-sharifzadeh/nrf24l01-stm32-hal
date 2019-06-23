@@ -45,6 +45,7 @@
 /* USER CODE BEGIN Includes */
 #include "nrf.h"
 #include "string.h"
+#include "NRF24.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,6 +90,10 @@ char c1;
 char* c = &c1;
 char c2;
 char* c3 = &c2;
+uint64_t TxpipeAddrs = 0x11223344AA;
+char myTxData[32] ;
+char AckPayload[32];
+char myRxData[50];
 
 void print(const char* msg){
 	static uint8_t newline = '\n';
@@ -124,11 +129,11 @@ void TransferMode(void){
 			if(NRF24_write(myTxData, 32))
 			{
 				NRF24_read(AckPayload, 32);
-				HAL_UART_Transmit(&huart2, (uint8_t *)"Transmitted Successfully\r\n", strlen("Transmitted Successfully\r\n"), 10);
+				print("Transmitted Successfully\r\n");
 					
 				char myDataack[80];
 				sprintf(myDataack, "AckPayload:  %s \r\n", AckPayload);
-				HAL_UART_Transmit(&huart2, (uint8_t *)myDataack, strlen(myDataack), 10);
+				print(myDataack);
 			}
 }
 void ReceiveMode(void){
@@ -147,17 +152,14 @@ void ReceiveMode(void){
 			NRF24_read(myRxData, 32);
 			NRF24_writeAckPayload(1, myAckPayload, 32);
 			myRxData[32] = '\r'; myRxData[32+1] = '\n';
-			HAL_UART_Transmit(&huart2, (uint8_t *)myRxData, 32+2, 10);
+			print(myRxData);
 		}
 }
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint64_t TxpipeAddrs = 0x11223344AA;
-char myTxData[32] ;
-char AckPayload[32];
-char myRxData[50];
+
 /* USER CODE END 0 */
 
 /**
@@ -204,7 +206,6 @@ int main(void)
   {
     /* USER CODE END WHILE */
 			
-
     /* USER CODE BEGIN 3 */
 		
 		if (flag == 1){
